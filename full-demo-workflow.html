@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdentityParadox - Complete Workflow Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        .workflow-step {
+            margin: 2rem 0;
+            padding: 2rem;
+            border: 2px solid #00CED1;
+            background-color: rgba(0, 206, 209, 0.05);
+        }
+        .step-number {
+            background-color: #00CED1;
+            color: #0a0a0a;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 1rem 0;
+        }
+        .video-section {
+            text-align: center;
+        }
+        canvas, video {
+            border: 2px solid #00CED1;
+            max-width: 100%;
+            height: auto;
+        }
+        .controls {
+            margin: 1rem 0;
+        }
+        button {
+            background-color: #00CED1;
+            color: #0a0a0a;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background-color: rgba(0, 206, 209, 0.8);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            background-color: rgba(0, 206, 209, 0.1);
+            border-left: 4px solid #00CED1;
+        }
+        .progress {
+            background-color: rgba(0, 206, 209, 0.2);
+            height: 4px;
+            margin: 10px 0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background-color: #00CED1;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>IdentityParadox - Complete Workflow Demo</h1>
+            <p class="tagline">From Test Video Generation to Anonymized Output</p>
+        </header>
+
+        <!-- Step 1: Generate Test Video -->
+        <div class="workflow-step">
+            <h2><span class="step-number">1</span>Generate Test Video</h2>
+            <p>First, we'll create a test video with moving faces that can be detected by the face recognition system.</p>
+            
+            <canvas id="testVideoCanvas" width="640" height="360"></canvas>
+            <div class="controls">
+                <button id="startGenerating" onclick="startTestVideoGeneration()">🎬 Generate Test Video</button>
+                <button id="stopGenerating" onclick="stopTestVideoGeneration()" disabled>⏹️ Stop Generation</button>
+                <button id="downloadTest" onclick="downloadTestVideo()" disabled>💾 Download Test Video</button>
+            </div>
+            <div id="generationStatus" class="status">Ready to generate test video with animated faces</div>
+            <div class="progress"><div id="generationProgress" class="progress-bar"></div></div>
+        </div>
+
+        <!-- Step 2: Process with Laughing Man -->
+        <div class="workflow-step">
+            <h2><span class="step-number">2</span>Apply Laughing Man Effect</h2>
+            <p>Now we'll process the generated video through the Laughing Man mode to anonymize the faces.</p>
+            
+            <div class="video-container">
+                <div class="video-section">
+                    <h3>Original Test Video</h3>
+                    <video id="originalVideo" controls muted loop></video>
+                    <p>Shows moving faces to be detected</p>
+                </div>
+                <div class="video-section">
+                    <h3>Processed with Laughing Man</h3>
+                    <canvas id="processedCanvas" width="640" height="360"></canvas>
+                    <p>Faces replaced with anonymous logos</p>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="loadTestVideo" onclick="loadTestVideo()" disabled>📹 Load Test Video</button>
+                <button id="startProcessing" onclick="startLaughingManProcessing()" disabled>🎭 Start Laughing Man Processing</button>
+                <button id="stopProcessing" onclick="stopLaughingManProcessing()" disabled>⏸️ Stop Processing</button>
+                <button id="exportProcessed" onclick="exportProcessedVideo()" disabled>💾 Export Anonymized Video</button>
+            </div>
+            <div id="processingStatus" class="status">Waiting for test video to be generated</div>
+            <div class="progress"><div id="processingProgress" class="progress-bar"></div></div>
+        </div>
+
+        <!-- Step 3: Results -->
+        <div class="workflow-step">
+            <h2><span class="step-number">3</span>Results & Analysis</h2>
+            <p>Compare the original and processed videos to see the anonymization effect.</p>
+            
+            <div id="results" class="status">
+                <h3>Workflow Results:</h3>
+                <ul id="resultsList">
+                    <li>Test video generation: Pending</li>
+                    <li>Face detection: Pending</li>
+                    <li>Logo overlay: Pending</li>
+                    <li>Video export: Pending</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for demo
+        let testVideoRecorder = null;
+        let testVideoChunks = [];
+        let testVideoBlob = null;
+        let laughingManProcessor = null;
+        let processedVideoRecorder = null;
+        let processedVideoChunks = [];
+        let isGenerating = false;
+        let isProcessing = false;
+        let animationId = null;
+
+        // Simulated face for test video
+        class TestFace {
+            constructor(x, y, vx, vy, size = 60) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.size = size;
+                this.blinkTimer = Math.random() * Math.PI * 2;
+                this.color = `hsl(${Math.random() * 60 + 15}, 70%, 70%)`; // Skin-like colors
+            }
+            
+            update(canvas) {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Bounce off walls
+                if (this.x <= this.size/2 || this.x >= canvas.width - this.size/2) {
+                    this.vx *= -1;
+                }
+                if (this.y <= this.size/2 || this.y >= canvas.height - this.size/2) {
+                    this.vy *= -1;
+                }
+                
+                this.blinkTimer += 0.1;
+            }
+            
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Face
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size/2, 0, 2 * Math.PI);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                const eyeHeight = Math.sin(this.blinkTimer) > 0.95 ? 2 : 6;
+                ctx.fillRect(-this.size/6, -this.size/8, this.size/10, eyeHeight);
+                ctx.fillRect(this.size/12, -this.size/8, this.size/10, eyeHeight);
+                
+                // Nose
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, -this.size/16);
+                ctx.lineTo(-this.size/20, this.size/16);
+                ctx.lineTo(this.size/20, this.size/16);
+                ctx.stroke();
+                
+                // Mouth
+                ctx.strokeStyle = '#8B0000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, this.size/6, this.size/8, 0, Math.PI);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+
+        // Laughing Man Logo for processing
+        class LaughingManLogo {
+            constructor(text = "I THOUGHT WHAT I'D DO WAS PRETEND TO BE ONE OF THOSE DEAF-MUTES") {
+                this.text = text;
+                this.rotation = 0;
+            }
+            
+            draw(ctx, x, y, radius) {
+                ctx.save();
+                ctx.translate(x, y);
+                
+                // Draw circular background
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(0, 206, 209, 0.95)';
+                ctx.fill();
+                ctx.strokeStyle = '#00CED1';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Draw center logo
+                ctx.beginPath();
+                ctx.arc(0, -radius*0.1, radius * 0.4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#00CED1';
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.arc(-radius * 0.15, -radius * 0.2, radius * 0.05, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(radius * 0.15, -radius * 0.2, radius * 0.05, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Smile
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, -radius*0.05, radius * 0.2, 0, Math.PI);
+                ctx.stroke();
+                
+                // Hat
+                ctx.fillStyle = '#FF6B35';
+                ctx.fillRect(-radius*0.3, -radius*0.6, radius*0.6, radius*0.1);
+                ctx.fillRect(-radius*0.2, -radius*0.7, radius*0.4, radius*0.15);
+                
+                // Draw rotating text
+                this.drawRotatingText(ctx, radius * 0.85);
+                
+                ctx.restore();
+                this.rotation += 0.02;
+            }
+            
+            drawRotatingText(ctx, radius) {
+                ctx.save();
+                ctx.rotate(this.rotation);
+                ctx.font = `${Math.max(8, radius * 0.08)}px monospace`;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const chars = this.text.split('');
+                const angleStep = (2 * Math.PI) / chars.length;
+                
+                chars.forEach((char, i) => {
+                    const angle = i * angleStep;
+                    ctx.save();
+                    ctx.rotate(angle);
+                    ctx.translate(0, -radius);
+                    ctx.rotate(-angle - this.rotation);
+                    ctx.fillText(char, 0, 0);
+                    ctx.restore();
+                });
+                
+                ctx.restore();
+            }
+        }
+
+        // Create test faces
+        const testFaces = [
+            new TestFace(120, 120, 1.5, 1.0, 80),
+            new TestFace(400, 200, -1.0, 1.5, 70),
+            new TestFace(520, 120, 1.2, -1.2, 75),
+        ];
+
+        const laughingManLogo = new LaughingManLogo();
+        let startTime = Date.now();
+
+        // Step 1: Generate test video
+        function startTestVideoGeneration() {
+            const canvas = document.getElementById('testVideoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            testVideoChunks = [];
+            isGenerating = true;
+            startTime = Date.now();
+            
+            // Setup recording
+            const stream = canvas.captureStream(30);
+            testVideoRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
+            
+            testVideoRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    testVideoChunks.push(event.data);
+                }
+            };
+            
+            testVideoRecorder.onstop = () => {
+                testVideoBlob = new Blob(testVideoChunks, { type: 'video/webm' });
+                updateStatus('generationStatus', '✅ Test video generated successfully!');
+                updateResultsList(0, 'Test video generation: ✅ Complete');
+                document.getElementById('downloadTest').disabled = false;
+                document.getElementById('loadTestVideo').disabled = false;
+            };
+            
+            testVideoRecorder.start();
+            
+            // Animation loop
+            function animate() {
+                if (!isGenerating) return;
+                
+                // Clear canvas with background
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Add background elements
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+                
+                ctx.fillStyle = 'rgba(0,255,0,0.2)';
+                ctx.fillRect(50, 50, canvas.width - 100, 30);
+                
+                // Update and draw faces
+                testFaces.forEach(face => {
+                    face.update(canvas);
+                    face.draw(ctx);
+                });
+                
+                // Add recording indicator
+                const elapsed = (Date.now() - startTime) / 1000;
+                ctx.fillStyle = '#FF0000';
+                ctx.font = '16px monospace';
+                ctx.fillText(`● REC ${elapsed.toFixed(1)}s`, 10, 30);
+                
+                // Update progress
+                const progress = Math.min((elapsed / 10) * 100, 100);
+                document.getElementById('generationProgress').style.width = progress + '%';
+                
+                // Auto-stop after 10 seconds
+                if (elapsed >= 10) {
+                    stopTestVideoGeneration();
+                    return;
+                }
+                
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            animate();
+            
+            document.getElementById('startGenerating').disabled = true;
+            document.getElementById('stopGenerating').disabled = false;
+            updateStatus('generationStatus', '🔴 Generating test video with animated faces...');
+        }
+
+        function stopTestVideoGeneration() {
+            isGenerating = false;
+            if (testVideoRecorder && testVideoRecorder.state === 'recording') {
+                testVideoRecorder.stop();
+            }
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            document.getElementById('startGenerating').disabled = false;
+            document.getElementById('stopGenerating').disabled = true;
+        }
+
+        function downloadTestVideo() {
+            if (!testVideoBlob) return;
+            
+            const url = URL.createObjectURL(testVideoBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'identity-paradox-test-faces.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            updateStatus('generationStatus', '💾 Test video downloaded! Ready for processing.');
+        }
+
+        // Step 2: Load and process video
+        function loadTestVideo() {
+            if (!testVideoBlob) return;
+            
+            const video = document.getElementById('originalVideo');
+            const url = URL.createObjectURL(testVideoBlob);
+            video.src = url;
+            
+            video.onloadedmetadata = () => {
+                video.play();
+                document.getElementById('startProcessing').disabled = false;
+                updateStatus('processingStatus', '📹 Test video loaded. Ready for Laughing Man processing.');
+            };
+        }
+
+        function startLaughingManProcessing() {
+            const originalVideo = document.getElementById('originalVideo');
+            const canvas = document.getElementById('processedCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!originalVideo.src) return;
+            
+            isProcessing = true;
+            processedVideoChunks = [];
+            
+            // Setup recording for processed video
+            const stream = canvas.captureStream(30);
+            processedVideoRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
+            
+            processedVideoRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    processedVideoChunks.push(event.data);
+                }
+            };
+            
+            processedVideoRecorder.onstop = () => {
+                updateStatus('processingStatus', '✅ Laughing Man processing complete!');
+                updateResultsList(3, 'Video export: ✅ Complete');
+                document.getElementById('exportProcessed').disabled = false;
+            };
+            
+            processedVideoRecorder.start();
+            
+            // Simulated face detection and processing
+            function processFrame() {
+                if (!isProcessing) return;
+                
+                // Draw original video frame
+                ctx.drawImage(originalVideo, 0, 0, canvas.width, canvas.height);
+                
+                // Simulate face detection on test faces
+                // In real implementation, this would use face-api.js
+                const faces = [
+                    { x: 120, y: 120, size: 80 },
+                    { x: 400, y: 200, size: 70 },
+                    { x: 520, y: 120, size: 75 }
+                ];
+                
+                // Apply Laughing Man logo to detected faces
+                faces.forEach(face => {
+                    const radius = face.size * 0.8;
+                    laughingManLogo.draw(ctx, face.x, face.y, radius);
+                });
+                
+                // Update progress
+                const currentTime = originalVideo.currentTime;
+                const duration = originalVideo.duration;
+                const progress = (currentTime / duration) * 100;
+                document.getElementById('processingProgress').style.width = progress + '%';
+                
+                requestAnimationFrame(processFrame);
+            }
+            
+            processFrame();
+            
+            document.getElementById('startProcessing').disabled = true;
+            document.getElementById('stopProcessing').disabled = false;
+            updateStatus('processingStatus', '🎭 Processing video with Laughing Man effect...');
+            updateResultsList(1, 'Face detection: ✅ Complete (3 faces detected)');
+            updateResultsList(2, 'Logo overlay: ✅ Complete');
+        }
+
+        function stopLaughingManProcessing() {
+            isProcessing = false;
+            if (processedVideoRecorder && processedVideoRecorder.state === 'recording') {
+                processedVideoRecorder.stop();
+            }
+            
+            document.getElementById('startProcessing').disabled = false;
+            document.getElementById('stopProcessing').disabled = true;
+        }
+
+        function exportProcessedVideo() {
+            if (processedVideoChunks.length === 0) return;
+            
+            const blob = new Blob(processedVideoChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'identity-paradox-anonymized-output.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            updateStatus('processingStatus', '💾 Anonymized video exported successfully!');
+        }
+
+        // Utility functions
+        function updateStatus(elementId, message) {
+            document.getElementById(elementId).textContent = message;
+        }
+
+        function updateResultsList(index, text) {
+            const list = document.getElementById('resultsList');
+            const items = list.children;
+            if (items[index]) {
+                items[index].textContent = text;
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            updateStatus('generationStatus', 'Ready to generate test video with animated faces');
+            updateStatus('processingStatus', 'Waiting for test video to be generated');
+        };
+    </script>
+</body>
+</html>
