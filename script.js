@@ -155,12 +155,28 @@ let faceTracking = [];
 async function initializeFaceDetection() {
     try {
         updateStatus('Loading face detection models...', 'processing');
-        await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
-        await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+        
+        // Use the jsdelivr CDN with correct paths for face-api.js models
+        const modelBaseUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@latest/model';
+        
+        await faceapi.nets.tinyFaceDetector.loadFromUri(modelBaseUrl);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(modelBaseUrl);
+        
         updateStatus('Face detection ready', 'success');
     } catch (error) {
         console.error('Error loading face detection:', error);
-        updateStatus('Error loading face detection models', 'error');
+        updateStatus('Face detection models failed to load. Laughing Man mode may not work properly.', 'error');
+        
+        // Fallback: try alternative CDN
+        try {
+            const fallbackUrl = 'https://justadudewhohacks.github.io/face-api.js/models';
+            await faceapi.nets.tinyFaceDetector.loadFromUri(fallbackUrl);
+            await faceapi.nets.faceLandmark68Net.loadFromUri(fallbackUrl);
+            updateStatus('Face detection ready (fallback models)', 'success');
+        } catch (fallbackError) {
+            console.error('Fallback model loading failed:', fallbackError);
+            updateStatus('Face detection unavailable. Please check internet connection.', 'error');
+        }
     }
 }
 

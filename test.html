@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdentityParadox Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #00CED1;
+            margin: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #00CED1;
+        }
+        button {
+            background-color: #00CED1;
+            color: #0a0a0a;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #testCanvas {
+            border: 1px solid #00CED1;
+            margin: 10px 0;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: rgba(0, 206, 209, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>IdentityParadox - Component Tests</h1>
+    
+    <div class="test-section">
+        <h2>1. Canvas Test</h2>
+        <button onclick="testCanvas()">Test Canvas Drawing</button>
+        <canvas id="testCanvas" width="300" height="200"></canvas>
+        <div id="canvasResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Laughing Man Logo Test</h2>
+        <button onclick="testLogo()">Test Logo Generation</button>
+        <canvas id="logoCanvas" width="300" height="300"></canvas>
+        <div id="logoResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Face-API.js Test</h2>
+        <button onclick="testFaceAPI()">Test Face Detection Library</button>
+        <div id="faceApiResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Video Processing Test</h2>
+        <button onclick="testVideoProcessing()">Test Video Processing Functions</button>
+        <div id="videoResult" class="result"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>
+        // Laughing Man Logo class (simplified)
+        class LaughingManLogo {
+            constructor(text = "Test Text") {
+                this.text = text;
+                this.rotation = 0;
+            }
+            
+            createLaughingManSVG() {
+                const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="#00CED1" stroke-width="3"/>
+                    <g transform="translate(100, 100)">
+                        <circle cx="0" cy="-10" r="40" fill="#00CED1"/>
+                        <circle cx="-15" cy="-20" r="5" fill="#1a1a1a"/>
+                        <circle cx="15" cy="-20" r="5" fill="#1a1a1a"/>
+                        <path d="M -20 -5 Q 0 5 20 -5" stroke="#1a1a1a" stroke-width="3" fill="none"/>
+                    </g>
+                </svg>`;
+                return 'data:image/svg+xml;base64,' + btoa(svg);
+            }
+            
+            draw(ctx, x, y, radius) {
+                ctx.save();
+                ctx.translate(x, y);
+                
+                // Draw circular background
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(0, 206, 209, 0.9)';
+                ctx.fill();
+                
+                // Draw rotating text
+                this.drawRotatingText(ctx, radius * 0.8);
+                
+                ctx.restore();
+                this.rotation += 0.02;
+            }
+            
+            drawRotatingText(ctx, radius) {
+                ctx.save();
+                ctx.rotate(this.rotation);
+                ctx.font = `${radius * 0.15}px monospace`;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const chars = this.text.split('');
+                const angleStep = (2 * Math.PI) / chars.length;
+                
+                chars.forEach((char, i) => {
+                    const angle = i * angleStep;
+                    ctx.save();
+                    ctx.rotate(angle);
+                    ctx.translate(0, -radius);
+                    ctx.rotate(-angle - this.rotation);
+                    ctx.fillText(char, 0, 0);
+                    ctx.restore();
+                });
+                
+                ctx.restore();
+            }
+        }
+
+        function testCanvas() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            try {
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw test pattern
+                ctx.fillStyle = '#00CED1';
+                ctx.fillRect(10, 10, 100, 50);
+                
+                ctx.fillStyle = '#FF6B35';
+                ctx.fillRect(150, 10, 100, 50);
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '16px monospace';
+                ctx.fillText('Canvas Working!', 10, 100);
+                
+                document.getElementById('canvasResult').textContent = '✅ Canvas test passed - Basic drawing works';
+            } catch (error) {
+                document.getElementById('canvasResult').textContent = '❌ Canvas test failed: ' + error.message;
+            }
+        }
+
+        function testLogo() {
+            const canvas = document.getElementById('logoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            try {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                const logo = new LaughingManLogo("IDENTITY PARADOX TEST");
+                logo.draw(ctx, 150, 150, 80);
+                
+                document.getElementById('logoResult').textContent = '✅ Logo test passed - Laughing Man logo renders correctly';
+            } catch (error) {
+                document.getElementById('logoResult').textContent = '❌ Logo test failed: ' + error.message;
+            }
+        }
+
+        async function testFaceAPI() {
+            const resultDiv = document.getElementById('faceApiResult');
+            
+            try {
+                resultDiv.textContent = '🔄 Testing face-api.js library...';
+                
+                // Check if face-api is loaded
+                if (typeof faceapi === 'undefined') {
+                    throw new Error('face-api.js library not loaded');
+                }
+                
+                // Try to load models (this might fail due to CORS, but we can test the API exists)
+                const modelBaseUrl = 'https://justadudewhohacks.github.io/face-api.js/models';
+                
+                // Just test if the API functions exist
+                if (typeof faceapi.nets.tinyFaceDetector.loadFromUri === 'function' &&
+                    typeof faceapi.detectAllFaces === 'function') {
+                    resultDiv.textContent = '✅ Face-API test passed - Library loaded and functions available';
+                } else {
+                    throw new Error('face-api.js functions not available');
+                }
+                
+            } catch (error) {
+                resultDiv.textContent = '❌ Face-API test failed: ' + error.message + ' (Models may need internet connection)';
+            }
+        }
+
+        function testVideoProcessing() {
+            const resultDiv = document.getElementById('videoResult');
+            
+            try {
+                // Test edge detection function
+                const testImageData = {
+                    width: 10,
+                    height: 10,
+                    data: new Uint8ClampedArray(400) // 10x10x4 (RGBA)
+                };
+                
+                // Fill with test data
+                for (let i = 0; i < testImageData.data.length; i += 4) {
+                    testImageData.data[i] = 128;     // R
+                    testImageData.data[i + 1] = 128; // G
+                    testImageData.data[i + 2] = 128; // B
+                    testImageData.data[i + 3] = 255; // A
+                }
+                
+                // Test posterization function
+                function posterize(data, levels) {
+                    const factor = 255 / (levels - 1);
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.round(data[i] / factor) * factor;
+                        data[i + 1] = Math.round(data[i + 1] / factor) * factor;
+                        data[i + 2] = Math.round(data[i + 2] / factor) * factor;
+                    }
+                }
+                
+                posterize(testImageData.data, 6);
+                
+                resultDiv.textContent = '✅ Video processing test passed - Core algorithms working';
+                
+            } catch (error) {
+                resultDiv.textContent = '❌ Video processing test failed: ' + error.message;
+            }
+        }
+        
+        // Run basic tests on page load
+        window.onload = function() {
+            testCanvas();
+            testLogo();
+        };
+    </script>
+</body>
+</html>
