@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdentityParadox - Live Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .demo-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            border: 1px solid #00CED1;
+            background-color: rgba(0, 206, 209, 0.05);
+        }
+        .demo-canvas {
+            border: 2px solid #00CED1;
+            margin: 1rem 0;
+        }
+        .animation-demo {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        .simulated-face {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #FFB6C1;
+            margin: 20px;
+            display: inline-block;
+            position: relative;
+        }
+        .face-eyes {
+            position: absolute;
+            top: 25px;
+            left: 20px;
+            width: 40px;
+            height: 10px;
+        }
+        .face-eyes::before,
+        .face-eyes::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        .face-eyes::before {
+            left: 5px;
+        }
+        .face-eyes::after {
+            right: 5px;
+        }
+        .face-mouth {
+            position: absolute;
+            bottom: 20px;
+            left: 25px;
+            width: 30px;
+            height: 15px;
+            border: 2px solid #000;
+            border-top: none;
+            border-radius: 0 0 30px 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>IdentityParadox - Live Demo</h1>
+            <p class="tagline">Demonstrating Real-time Video Anonymization</p>
+        </header>
+
+        <div class="demo-section">
+            <h2>🎭 Laughing Man Mode Demonstration</h2>
+            <p>This demo shows how the Laughing Man logo would overlay detected faces in real-time:</p>
+            
+            <div style="display: flex; align-items: center; justify-content: space-around; margin: 2rem 0;">
+                <div>
+                    <h4>Simulated Face Detection:</h4>
+                    <div class="simulated-face">
+                        <div class="face-eyes"></div>
+                        <div class="face-mouth"></div>
+                    </div>
+                    <p>↑ Detected Face</p>
+                </div>
+                
+                <div style="font-size: 3rem;">→</div>
+                
+                <div>
+                    <h4>With Laughing Man Overlay:</h4>
+                    <canvas id="demoCanvas" class="demo-canvas animation-demo" width="200" height="200"></canvas>
+                    <p>↑ Anonymized Result</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎨 Rotoscope Mode Demonstration</h2>
+            <p>This shows the artistic transformation effects:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 2rem 0;">
+                <div>
+                    <h4>Scanner Darkly</h4>
+                    <canvas id="scannerDemo" width="150" height="100" class="demo-canvas"></canvas>
+                </div>
+                <div>
+                    <h4>Comic Book</h4>
+                    <canvas id="comicDemo" width="150" height="100" class="demo-canvas"></canvas>
+                </div>
+                <div>
+                    <h4>Film Noir</h4>
+                    <canvas id="noirDemo" width="150" height="100" class="demo-canvas"></canvas>
+                </div>
+                <div>
+                    <h4>Neon Dreams</h4>
+                    <canvas id="neonDemo" width="150" height="100" class="demo-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 Application Features</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <h3>✅ Working Features:</h3>
+                    <ul>
+                        <li>Real-time video processing</li>
+                        <li>Face detection using TensorFlow.js</li>
+                        <li>5 artistic style presets</li>
+                        <li>Dynamic logo generation</li>
+                        <li>Smooth face tracking</li>
+                        <li>Video export functionality</li>
+                        <li>Privacy-focused (client-side only)</li>
+                        <li>Custom text for logos</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>🎯 Use Cases:</h3>
+                    <ul>
+                        <li>Anonymous video calls</li>
+                        <li>Artistic video transformation</li>
+                        <li>Privacy protection in recordings</li>
+                        <li>Creative content for social media</li>
+                        <li>Livestream anonymization</li>
+                        <li>Educational privacy demos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 Try It Yourself</h2>
+            <p>To test the full application:</p>
+            <ol>
+                <li><strong>Open <code>index.html</code></strong> in your browser</li>
+                <li><strong>Upload a video</strong> with faces (MP4, WebM formats)</li>
+                <li><strong>Select mode:</strong> Rotoscope for artistic effects, Laughing Man for face anonymization</li>
+                <li><strong>Adjust settings</strong> using the control sliders</li>
+                <li><strong>Process video</strong> to see real-time effects</li>
+                <li><strong>Export</strong> the processed video</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Laughing Man Logo Demo
+        class DemoLaughingManLogo {
+            constructor() {
+                this.rotation = 0;
+                this.text = "I THOUGHT WHAT I'D DO WAS PRETEND TO BE ONE OF THOSE DEAF-MUTES";
+            }
+            
+            draw(ctx, x, y, radius) {
+                ctx.save();
+                ctx.translate(x, y);
+                
+                // Draw circular background
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(0, 206, 209, 0.9)';
+                ctx.fill();
+                
+                // Draw center logo (simplified)
+                ctx.beginPath();
+                ctx.arc(0, -5, radius * 0.4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#00CED1';
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.arc(-radius * 0.15, -radius * 0.15, radius * 0.05, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(radius * 0.15, -radius * 0.15, radius * 0.05, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Smile
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius * 0.2, 0, Math.PI);
+                ctx.stroke();
+                
+                // Draw rotating text
+                this.drawRotatingText(ctx, radius * 0.85);
+                
+                ctx.restore();
+                this.rotation += 0.01;
+            }
+            
+            drawRotatingText(ctx, radius) {
+                ctx.save();
+                ctx.rotate(this.rotation);
+                ctx.font = `${radius * 0.12}px monospace`;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                const chars = this.text.split('');
+                const angleStep = (2 * Math.PI) / chars.length;
+                
+                chars.forEach((char, i) => {
+                    const angle = i * angleStep;
+                    ctx.save();
+                    ctx.rotate(angle);
+                    ctx.translate(0, -radius);
+                    ctx.rotate(-angle - this.rotation);
+                    ctx.fillText(char, 0, 0);
+                    ctx.restore();
+                });
+                
+                ctx.restore();
+            }
+        }
+
+        // Demo animations
+        function startDemo() {
+            const demoCanvas = document.getElementById('demoCanvas');
+            const ctx = demoCanvas.getContext('2d');
+            const logo = new DemoLaughingManLogo();
+            
+            function animate() {
+                ctx.clearRect(0, 0, demoCanvas.width, demoCanvas.height);
+                logo.draw(ctx, 100, 100, 80);
+                requestAnimationFrame(animate);
+            }
+            animate();
+            
+            // Style demos
+            createStyleDemo('scannerDemo', '#8B4513', '#FFE4B5');
+            createStyleDemo('comicDemo', '#FF0000', '#FFFF00');
+            createStyleDemo('noirDemo', '#000000', '#FFFFFF');
+            createStyleDemo('neonDemo', '#FF00FF', '#00FFFF');
+        }
+        
+        function createStyleDemo(canvasId, color1, color2) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Create abstract art representing the style
+            ctx.fillStyle = color1;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = color2;
+            ctx.fillRect(20, 20, 60, 30);
+            ctx.fillRect(90, 40, 40, 40);
+            
+            // Add some lines to simulate edge detection
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 25);
+            ctx.lineTo(150, 25);
+            ctx.moveTo(0, 75);
+            ctx.lineTo(150, 75);
+            ctx.stroke();
+        }
+        
+        // Start demo when page loads
+        window.onload = startDemo;
+    </script>
+</body>
+</html>

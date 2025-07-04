@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Test Video for IdentityParadox</title>
+    <style>
+        body { font-family: monospace; background: #0a0a0a; color: #00CED1; padding: 20px; }
+        canvas { border: 1px solid #00CED1; margin: 10px; }
+        button { background: #00CED1; color: #0a0a0a; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .info { background: rgba(0,206,209,0.1); padding: 15px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Test Video Generator for IdentityParadox</h1>
+    
+    <div class="info">
+        <h3>📹 This generates a simple test video with animated faces for testing the Laughing Man mode</h3>
+        <p>The generated video will have moving "faces" (circles with eyes and mouth) that can be detected by the face detection algorithm.</p>
+    </div>
+    
+    <canvas id="videoCanvas" width="640" height="480"></canvas><br>
+    <button onclick="startRecording()">🎬 Start Recording</button>
+    <button onclick="stopRecording()">⏹️ Stop Recording</button>
+    <button onclick="downloadVideo()">💾 Download Test Video</button>
+    
+    <div id="status" style="margin: 20px 0;"></div>
+    
+    <div class="info">
+        <h3>📋 Instructions:</h3>
+        <ol>
+            <li>Click "Start Recording" to begin generating the test video</li>
+            <li>Wait 5-10 seconds for animation to record</li>
+            <li>Click "Stop Recording" to finish</li>
+            <li>Click "Download Test Video" to save the MP4 file</li>
+            <li>Use this video to test the IdentityParadox application</li>
+        </ol>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        let mediaRecorder;
+        let recordedChunks = [];
+        let animationId;
+        let startTime;
+        
+        // Face simulation
+        class TestFace {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = 40;
+                this.blinkTimer = 0;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Bounce off walls
+                if (this.x <= this.radius || this.x >= canvas.width - this.radius) {
+                    this.vx *= -1;
+                }
+                if (this.y <= this.radius || this.y >= canvas.height - this.radius) {
+                    this.vy *= -1;
+                }
+                
+                this.blinkTimer += 0.1;
+            }
+            
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Face
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#FFB6C1';
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                const eyeHeight = Math.sin(this.blinkTimer) > 0.9 ? 2 : 8;
+                ctx.fillRect(-15, -10, 8, eyeHeight);
+                ctx.fillRect(7, -10, 8, eyeHeight);
+                
+                // Mouth
+                ctx.beginPath();
+                ctx.arc(0, 10, 15, 0, Math.PI);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+        
+        // Create test faces
+        const faces = [
+            new TestFace(100, 100, 2, 1.5),
+            new TestFace(300, 200, -1.5, 2),
+            new TestFace(500, 150, 1, -1.8),
+        ];
+        
+        function animate() {
+            // Clear canvas
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and draw faces
+            faces.forEach(face => {
+                face.update();
+                face.draw(ctx);
+            });
+            
+            // Add some background elements
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(50, canvas.height - 100, canvas.width - 100, 50);
+            
+            // Add timestamp
+            const elapsed = Date.now() - startTime;
+            ctx.fillStyle = '#000';
+            ctx.font = '16px monospace';
+            ctx.fillText(`Recording: ${(elapsed / 1000).toFixed(1)}s`, 10, 30);
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function startRecording() {
+            recordedChunks = [];
+            startTime = Date.now();
+            
+            const stream = canvas.captureStream(30);
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
+            
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            
+            mediaRecorder.onstop = () => {
+                document.getElementById('status').innerHTML = '✅ Recording complete! Click "Download Test Video" to save.';
+            };
+            
+            mediaRecorder.start();
+            animate();
+            
+            document.getElementById('status').innerHTML = '🔴 Recording in progress...';
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function downloadVideo() {
+            if (recordedChunks.length === 0) {
+                alert('No recording available. Please record a video first.');
+                return;
+            }
+            
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'identity-paradox-test-video.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            document.getElementById('status').innerHTML = '💾 Test video downloaded! Use this file to test IdentityParadox.';
+        }
+        
+        // Auto-start animation for preview
+        startTime = Date.now();
+        animate();
+    </script>
+</body>
+</html>
