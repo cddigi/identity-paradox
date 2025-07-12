@@ -59,7 +59,8 @@ let settings = {
     lineThickness: 2,
     logoOpacity: 0.9,
     rotationSpeed: 0.02,
-    currentQuote: laughingManQuotes.default
+    currentQuote: laughingManQuotes.default,
+    defaceThreshold: 0.3
 };
 
 // Laughing Man Logo class
@@ -377,6 +378,8 @@ function startProcessing() {
             laughingManLogo = new LaughingManLogo(settings.currentQuote);
         }
         processLaughingManFrame();
+    } else if (currentMode === 'deface') {
+        processDefaceVideo();
     } else {
         processRotoscopeFrame();
     }
@@ -441,6 +444,70 @@ function updateStatus(message, type = '') {
     status.className = `status ${type}`;
 }
 
+// Process video with deface
+async function processDefaceVideo() {
+    updateStatus('Processing video with deface...', 'processing');
+    
+    try {
+        // Create blob from video
+        const videoBlob = await fetch(originalVideo.src).then(r => r.blob());
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('video', videoBlob, 'video.mp4');
+        formData.append('mode', document.getElementById('defaceMode').value);
+        formData.append('threshold', settings.defaceThreshold);
+        
+        const scale = document.getElementById('defaceScale').value;
+        if (scale) {
+            formData.append('scale', scale);
+        }
+        
+        updateStatus('Uploading video to deface server...', 'processing');
+        
+        // Send to deface server
+        const response = await fetch('http://localhost:8080/anonymize', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        updateStatus('Receiving processed video...', 'processing');
+        
+        // Get processed video
+        const processedBlob = await response.blob();
+        const processedUrl = URL.createObjectURL(processedBlob);
+        
+        // Create video element for processed video
+        const processedVideo = document.createElement('video');
+        processedVideo.src = processedUrl;
+        processedVideo.onloadedmetadata = () => {
+            // Draw first frame to canvas
+            ctx.drawImage(processedVideo, 0, 0, outputCanvas.width, outputCanvas.height);
+            
+            // Enable download
+            const link = document.createElement('a');
+            link.href = processedUrl;
+            link.download = 'anonymized_video.mp4';
+            
+            updateStatus('Video processed successfully! Click Export to download.', 'success');
+            
+            // Update export button to download the processed video
+            document.getElementById('exportBtn').onclick = () => {
+                link.click();
+            };
+        };
+        
+    } catch (error) {
+        console.error('Deface processing error:', error);
+        updateStatus(`Error: ${error.message}. Make sure deface server is running on port 8080.`, 'error');
+        stopProcessing();
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     originalVideo = document.getElementById('originalVideo');
@@ -470,13 +537,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
+            // Hide all controls first
+            document.querySelector('.rotoscope-controls').style.display = 'none';
+            document.querySelector('.laughing-man-controls').style.display = 'none';
+            document.querySelector('.deface-controls').style.display = 'none';
+            
+            // Show appropriate controls
             if (currentMode === 'laughing-man') {
-                document.querySelector('.rotoscope-controls').style.display = 'none';
                 document.querySelector('.laughing-man-controls').style.display = 'block';
                 initializeFaceDetection();
+            } else if (currentMode === 'deface') {
+                document.querySelector('.deface-controls').style.display = 'block';
             } else {
                 document.querySelector('.rotoscope-controls').style.display = 'block';
-                document.querySelector('.laughing-man-controls').style.display = 'none';
             }
             
             stopProcessing();
@@ -571,6 +644,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
         faceTracking = [];
         updateStatus('Reset complete', 'success');
+    });
+    
+    // Deface controls
+    document.getElementById('defaceThreshold').addEventListener('input', (e) => {
+        settings.defaceThreshold = parseFloat(e.target.value);
     });
     
     // Update slider displays

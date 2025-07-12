@@ -2,7 +2,7 @@
 
 > *"Who you are is not who you seem"*
 
-A privacy-focused web application that transforms personal videos into anonymous art through two distinct modes: Rotoscope effects inspired by "A Scanner Darkly" and Laughing Man overlays from Ghost in the Shell.
+A privacy-focused web application that transforms personal videos into anonymous art through three distinct modes: Rotoscope effects inspired by "A Scanner Darkly", Laughing Man overlays from Ghost in the Shell, and professional face anonymization using the deface library.
 
 ## 🎯 Features
 
@@ -20,9 +20,17 @@ A privacy-focused web application that transforms personal videos into anonymous
 - **Smooth face tracking** with interpolation
 - **Adjustable settings** (opacity, rotation speed)
 
+### 🤖 Deface Mode
+- **Neural network face detection** using CenterFace
+- **Multiple anonymization styles** (blur, solid black, mosaic)
+- **Adjustable detection sensitivity**
+- **Performance optimization** with optional downscaling
+- **Local processing** via Python server
+
 ### 🛡️ Privacy Features
-- **100% client-side processing** - no data leaves your device
-- **No server communication** - works completely offline
+- **Client-side processing** for Rotoscope/Laughing Man modes
+- **Local server processing** for Deface mode (never leaves your machine)
+- **No external API calls** - works offline
 - **Metadata stripping** from exported videos
 - **Local video export** using MediaRecorder API
 
@@ -34,7 +42,16 @@ A privacy-focused web application that transforms personal videos into anonymous
    cd identity-paradox
    ```
 
-2. **Open in browser**
+2. **For Deface mode (optional)**
+   ```bash
+   # Install deface
+   pip install deface
+   
+   # Start the deface server
+   python deface_server.py
+   ```
+
+3. **Open in browser**
    ```bash
    # Simply open index.html in any modern web browser
    open index.html
@@ -45,18 +62,26 @@ A privacy-focused web application that transforms personal videos into anonymous
 ## 💻 Usage
 
 1. **Upload Video**: Click the upload button and select a video file
-2. **Choose Mode**: Select either Rotoscope or Laughing Man mode
+2. **Choose Mode**: Select Rotoscope, Laughing Man, or Deface mode
 3. **Adjust Settings**: Use the controls to customize effects
 4. **Process**: Click "Process Video" for real-time processing
 5. **Export**: Click "Export Video" to save your creation
+
+### Deface Mode
+- Requires the deface server to be running (`python deface_server.py`)
+- Offers professional-grade face anonymization
+- Processes on local server for optimal performance
 
 ## 🛠️ Technical Details
 
 - **Frontend**: Vanilla JavaScript, HTML5, CSS3
 - **Video Processing**: Canvas API with real-time frame manipulation
-- **Face Detection**: face-api.js (TensorFlow.js based)
-- **Export**: MediaRecorder API for WebM video output
-- **Privacy**: No external API calls, all processing local
+- **Face Detection**: 
+  - face-api.js (TensorFlow.js based) for Laughing Man mode
+  - CenterFace neural network (via deface) for Deface mode
+- **Export**: MediaRecorder API for WebM video output (Rotoscope/Laughing Man)
+- **Export**: Direct MP4 download for Deface mode
+- **Privacy**: All processing local (browser or local server)
 
 ## 🎨 Style Presets
 
@@ -87,6 +112,8 @@ identity-paradox/
 ├── index.html          # Main application
 ├── style.css           # Cyberpunk styling
 ├── script.js           # Core functionality
+├── deface_server.py    # Python server for deface mode
+├── DEFACE_SETUP.md     # Deface installation guide
 ├── CLAUDE.md           # Claude Code instructions
 ├── IMPLEMENTATION_GUIDE.md # Detailed implementation
 └── README.md           # This file

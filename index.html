@@ -19,6 +19,7 @@
         <div class="mode-selector">
             <button class="mode-btn active" data-mode="rotoscope">Rotoscope Mode</button>
             <button class="mode-btn" data-mode="laughing-man">Laughing Man Mode</button>
+            <button class="mode-btn" data-mode="deface">Deface Mode</button>
         </div>
         
         <div class="upload-section">
@@ -100,6 +101,39 @@
                 <label for="rotationSpeed">Rotation Speed</label>
                 <input type="range" id="rotationSpeed" min="0" max="0.1" step="0.01" value="0.02">
                 <span class="value-display">0.02</span>
+            </div>
+        </div>
+        
+        <!-- Deface Controls -->
+        <div class="controls deface-controls" style="display: none;">
+            <h3>Deface Settings</h3>
+            
+            <div class="control-group">
+                <label for="defaceMode">Anonymization Style</label>
+                <select id="defaceMode">
+                    <option value="blur">Blur</option>
+                    <option value="solid">Solid Black</option>
+                    <option value="mosaic">Mosaic</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="defaceThreshold">Detection Sensitivity</label>
+                <input type="range" id="defaceThreshold" min="0.1" max="0.9" step="0.1" value="0.3">
+                <span class="value-display">0.3</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="defaceScale">Downscale for Performance</label>
+                <select id="defaceScale">
+                    <option value="">Original Resolution</option>
+                    <option value="640x480">640x480</option>
+                    <option value="320x240">320x240</option>
+                </select>
+            </div>
+            
+            <div class="status-info">
+                <p>⚡ Processing happens on server for optimal performance</p>
             </div>
         </div>
         
