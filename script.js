@@ -7,6 +7,7 @@ let ctx = null;
 let animationId = null;
 let mediaRecorder = null;
 let recordedChunks = [];
+let frameCounter = 0;
 
 // Style presets for rotoscope mode
 const stylePresets = {
@@ -51,17 +52,41 @@ const laughingManQuotes = {
     puppet: "There's nothing sadder than a puppet without a ghost"
 };
 
-// Current settings
+// Load optimized configuration
+let optimizedConfig;
+try {
+    optimizedConfig = window.IdentityParadoxConfig ? 
+        window.IdentityParadoxConfig.loadOptimizedConfig() : 
+        null;
+} catch (error) {
+    console.warn('Could not load optimized config, using defaults');
+    optimizedConfig = null;
+}
+
+// Current settings (optimized through automated testing)
 let currentStyle = 'scanner';
 let settings = {
     edgeThreshold: 30,
     posterization: 6,
     lineThickness: 2,
-    logoOpacity: 0.9,
-    rotationSpeed: 0.02,
+    logoOpacity: optimizedConfig?.visual.logoOpacity || 0.95,
+    rotationSpeed: optimizedConfig?.visual.rotationSpeed || 0.02,
     currentQuote: laughingManQuotes.default,
-    defaceThreshold: 0.3
+    defaceThreshold: optimizedConfig?.visual.defaceThreshold || 0.55,
+    // Optimized face detection parameters
+    faceDetection: optimizedConfig?.faceDetection || {
+        inputSize: 416,
+        scoreThreshold: 0.55,
+        overlaySizeMultiplier: 1.1,
+        smoothingFactor: 0.15,
+        frameSkip: 3
+    }
 };
+
+// Log optimization info if available
+if (optimizedConfig?.optimization) {
+    console.log(`🎯 Using optimized parameters: ${optimizedConfig.optimization.finalAccuracy}% accuracy from ${optimizedConfig.optimization.cycles} test cycles`);
+}
 
 // Laughing Man Logo class
 class LaughingManLogo {
@@ -186,7 +211,10 @@ async function detectFaces(video) {
     try {
         const detections = await faceapi.detectAllFaces(
             video,
-            new faceapi.TinyFaceDetectorOptions()
+            new faceapi.TinyFaceDetectorOptions({
+                inputSize: settings.faceDetection.inputSize,
+                scoreThreshold: settings.faceDetection.scoreThreshold
+            })
         ).withFaceLandmarks();
         
         return detections.map(d => ({
@@ -207,10 +235,10 @@ function smoothFaceTracking(newFaces, oldTracking) {
         const match = findClosestFace(newFace, oldTracking);
         if (match) {
             return {
-                x: lerp(match.x, newFace.x, 0.3),
-                y: lerp(match.y, newFace.y, 0.3),
-                width: lerp(match.width, newFace.width, 0.3),
-                height: lerp(match.height, newFace.height, 0.3)
+                x: lerp(match.x, newFace.x, settings.faceDetection.smoothingFactor),
+                y: lerp(match.y, newFace.y, settings.faceDetection.smoothingFactor),
+                width: lerp(match.width, newFace.width, settings.faceDetection.smoothingFactor),
+                height: lerp(match.height, newFace.height, settings.faceDetection.smoothingFactor)
             };
         }
         return newFace;
@@ -343,11 +371,13 @@ async function processLaughingManFrame() {
         return;
     }
     
+    frameCounter++;
+    
     // Draw original video
     ctx.drawImage(originalVideo, 0, 0, outputCanvas.width, outputCanvas.height);
     
-    // Detect faces periodically (not every frame for performance)
-    if (Math.random() < 0.2) { // 20% chance to update face detection
+    // Optimized face detection with frame skipping
+    if (frameCounter % settings.faceDetection.frameSkip === 0) {
         const faces = await detectFaces(originalVideo);
         faceTracking = smoothFaceTracking(faces, faceTracking);
     }
@@ -356,7 +386,7 @@ async function processLaughingManFrame() {
     faceTracking.forEach(face => {
         const centerX = face.x + face.width / 2;
         const centerY = face.y + face.height / 2;
-        const radius = Math.max(face.width, face.height) * 0.7;
+        const radius = Math.max(face.width, face.height) * 0.5 * settings.faceDetection.overlaySizeMultiplier;
         
         laughingManLogo.draw(ctx, centerX, centerY, radius);
     });

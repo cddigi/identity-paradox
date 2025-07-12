@@ -1,0 +1,14 @@
+{
+  "bestParameters": {
+    "faceThreshold": 0.45,
+    "overlaySizeMultiplier": 1.3,
+    "smoothingFactor": 0.1,
+    "inputSize": 608,
+    "overlayAlpha": 0.75,
+    "frameSkip": 1
+  },
+  "bestAccuracy": 100,
+  "totalCycles": 56,
+  "improvements": 4,
+  "timestamp": "2025-07-12T22:46:45.668Z"
+}
